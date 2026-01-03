@@ -6,7 +6,7 @@ export default function Home() {
   const [a, setA] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
   async function ask() {
   setLoading(true);
