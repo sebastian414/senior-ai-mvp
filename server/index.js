@@ -95,13 +95,14 @@ app.post("/ask", async (req, res) => {
   try {
     const question = String(req.body?.question || "").trim();
     const role = String(req.body?.role || "senior").trim();
+    const senior_id = String(req.body?.senior_id || "demo").trim();
 
     if (!question) return res.status(400).json({ error: "Missing question" });
 
     if (isMedicalHighRisk(question)) {
       const answer =
         "S týmto ti neviem bezpečne poradiť. Zavolaj lekárnika alebo lekára a povedz im presne, aké lieky užívaš.";
-      await safeInsertLog({ role, question, answer });
+      await safeInsertLog({ senior_id, role, question, answer });
       return res.json({ answer });
     }
 
