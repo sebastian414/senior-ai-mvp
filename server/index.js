@@ -72,12 +72,14 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 app.get("/logs", async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit || 20), 100);
+    const senior_id = String(req.query.senior_id || "demo").trim();
 
     const { data, error } = await supabase
-      .from("logs")
-      .select("created_at, role, question, answer")
-      .order("created_at", { ascending: false })
-      .limit(limit);
+  .from("logs")
+  .select("created_at, role, question, answer")
+  .eq("senior_id", senior_id)
+  .order("created_at", { ascending: false })
+  .limit(limit);
 
     if (error) {
       console.error("Supabase read error:", error.message);
