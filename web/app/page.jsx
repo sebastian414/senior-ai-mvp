@@ -20,7 +20,7 @@ export default function Home() {
     const r = await fetch(`${API_URL}/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q, role: "senior" })
+      body: JSON.stringify({ question: q, role: "senior", senior_id: "demo" })
     });
 
     const text = await r.text(); // najprv ako text, aby sme videli aj HTML chyby
