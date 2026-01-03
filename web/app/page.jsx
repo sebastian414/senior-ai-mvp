@@ -9,22 +9,35 @@ export default function Home() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   async function ask() {
-    setLoading(true);
-    setA("");
-    try {
-      const r = await fetch(`${API_URL}/ask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, role: "senior" })
-      });
-      const data = await r.json();
-      setA(data.answer || data.error || "Chyba");
-    } catch {
-      setA("Chyba spojenia");
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  setA("");
+  try {
+    if (!API_URL) {
+      setA("Chýba NEXT_PUBLIC_API_URL vo Verceli.");
+      return;
     }
+
+    const r = await fetch(`${API_URL}/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q, role: "senior" })
+    });
+
+    const text = await r.text(); // najprv ako text, aby sme videli aj HTML chyby
+    if (!r.ok) {
+      setA(`HTTP ${r.status}: ${text.slice(0, 300)}`);
+      return;
+    }
+
+    let data;
+    try { data = JSON.parse(text); } catch { data = { answer: text }; }
+    setA(data.answer || "Bez odpovede");
+  } catch (e) {
+    setA(`Chyba spojenia: ${String(e)}`);
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <div style={{ maxWidth: 720, margin: "40px auto", fontFamily: "system-ui", padding: 16 }}>
