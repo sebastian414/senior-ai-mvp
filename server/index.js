@@ -69,6 +69,28 @@ async function safeInsertLog(row) {
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+app.get("/logs", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit || 20), 100);
+
+    const { data, error } = await supabase
+      .from("logs")
+      .select("created_at, role, question, answer")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("Supabase read error:", error.message);
+      return res.status(500).json({ error: "DB read failed" });
+    }
+
+    return res.json({ logs: data || [] });
+  } catch (e) {
+    console.error("Logs endpoint error:", e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 app.post("/ask", async (req, res) => {
   try {
     const question = String(req.body?.question || "").trim();
