@@ -177,7 +177,7 @@ export default function Page() {
 
       <div style={s.avatarWrap}>
         <div style={{ ...s.halo, ...(mode === "offline" ? s.haloOff : {}) }} />
-        <img src="/pharmacist.png" alt="AI lekárnička" style={s.avatar} />
+        <img src="/pharmacist.svg" alt="AI lekárnička" style={s.avatar} />
         <div style={{ ...s.mouth, ...(mouthOpen ? s.mouthOpen : {}) }} />
         {isListening && <div style={s.pulse} aria-hidden />}
       </div>
