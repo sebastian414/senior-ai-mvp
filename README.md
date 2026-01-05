@@ -10,6 +10,18 @@ npm run dev -- --hostname 0.0.0.0 --port 3000
 ```
 The UI will be available at `http://localhost:3000/`.
 
+Create `web/.env.local` and point the frontend at your backend (Render or local):
+
+```
+NEXT_PUBLIC_API_URL=https://senior-ai-server.onrender.com
+```
+
+With the Azure Speech key/region set on the backend, the senior screen will:
+- fetch a speech token from `/speech-token`
+- record one utterance from the microphone (STT)
+- call `/ask`
+- speak the answer back (TTS) with a simple mouth-flap animation on the avatar.
+
 ### Backend (Express)
 ```bash
 cd server
