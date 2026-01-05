@@ -25,3 +25,28 @@ Environment variables required for the backend:
 - `ALLOWED_ORIGINS` (optional, comma-separated list)
 
 Running the backend on `PORT=4000` avoids clashing with the frontend dev server.
+
+## Deploying the backend to Render
+
+The Render service only needs the `server` folder. Create a **Web Service** that points to this repo and set:
+
+- **Build command:** `npm install`
+- **Start command:** `npm start`
+- **Runtime:** Node 20
+
+Environment variables required (you mentioned they are already present):
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `MISTRAL_API_KEY`
+- `AZURE_SPEECH_KEY`
+- `AZURE_SPEECH_REGION`
+- `ALLOWED_ORIGINS` (comma-separated, e.g. your Vercel URL and local dev URL)
+
+After deploy, verify the service is reachable with a Render shell or curl:
+
+```bash
+curl -sSf https://<your-render-service>.onrender.com/health
+```
+
+If you get `{ "ok": true }`, the backend and credentials are loaded correctly.
