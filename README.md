@@ -49,4 +49,4 @@ After deploy, verify the service is reachable with a Render shell or curl:
 curl -sSf https://<your-render-service>.onrender.com/health
 ```
 
-If you get `{ "ok": true }`, the backend and credentials are loaded correctly.
+If you get `{ "ok": true }`, the backend and credentials are loaded correctly. The current Render deployment responds at `https://senior-ai-server.onrender.com/health` with `{"ok":true}`; update `ALLOWED_ORIGINS` to include any frontend hosts that need to call it.
