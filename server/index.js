@@ -151,4 +151,30 @@ app.post("/ask", async (req, res) => {
 });
 
 const port = process.env.PORT || 3000;
+
+app.get("/speech-token", async (req, res) => {
+  try {
+    const key = process.env.AZURE_SPEECH_KEY;
+    const region = process.env.AZURE_SPEECH_REGION;
+
+    if (!key || !region) {
+      return res.status(500).json({ error: "Missing AZURE_SPEECH_KEY or AZURE_SPEECH_REGION" });
+    }
+
+    const r = await fetch(`https://${region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`, {
+      method: "POST",
+      headers: { "Ocp-Apim-Subscription-Key": key },
+    });
+
+    if (!r.ok) {
+      const t = await r.text();
+      return res.status(500).json({ error: `Azure token error ${r.status}: ${t.slice(0, 200)}` });
+    }
+
+    const token = await r.text();
+    res.json({ token, region });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
 app.listen(port, () => console.log(`Server running on :${port}`));

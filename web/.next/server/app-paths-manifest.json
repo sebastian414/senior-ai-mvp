@@ -1,0 +1,9 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/family/problems/page": "app/family/problems/page.js",
+  "/family/page": "app/family/page.js",
+  "/family/schedule/page": "app/family/schedule/page.js",
+  "/family/stock/page": "app/family/stock/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/page": "app/page.js"
+}
