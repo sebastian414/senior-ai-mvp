@@ -33,6 +33,10 @@ export default function FamilyPage() {
       try {
         setLoading(true);
         setErr("");
+        if (!API_URL) {
+          setErr("Chýba NEXT_PUBLIC_API_URL v prostredí.");
+          return;
+        }
         const r = await fetch(`${API_URL}/logs?limit=30&senior_id=demo`);
         const t = await r.text();
         if (!r.ok) {

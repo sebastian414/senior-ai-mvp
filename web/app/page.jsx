@@ -8,7 +8,7 @@ import {
   speakText,
 } from "./lib/speech";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
 function cleanTranscript(text) {
   const trimmed = (text || "").replace(/^You said:?\s*/i, "").trim();
@@ -27,6 +27,8 @@ function safetyWrap(question, aiAnswer) {
 }
 
 async function askBackend(question) {
+  if (!API_BASE) throw new Error("Chýba NEXT_PUBLIC_API_URL");
+
   const res = await fetch(`${API_BASE}/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -173,6 +175,18 @@ export default function Page() {
 
   return (
     <main style={s.screen}>
+      <nav style={s.nav}>
+        <a href="/tutorial" style={s.navLink}>
+          Návod
+        </a>
+        <a href="/family" style={s.navLink}>
+          Rodina
+        </a>
+        <a href="/settings" style={s.navLink}>
+          Nastavenia
+        </a>
+      </nav>
+
       <div style={s.topHint}>Váš zdravotný asistent</div>
 
       <div style={s.avatarWrap}>
@@ -272,6 +286,23 @@ const s = {
       "radial-gradient(1200px 700px at 50% 10%, #ffffff 0%, #f3fbf8 70%, #eaf7f3 100%)",
     color: "#0b1220",
     fontFamily: "system-ui",
+  },
+  nav: {
+    width: "100%",
+    maxWidth: 520,
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  navLink: {
+    fontSize: 13,
+    fontWeight: 800,
+    color: "#0b6b5e",
+    textDecoration: "none",
+    padding: "6px 10px",
+    borderRadius: 12,
+    background: "rgba(138,212,195,0.18)",
+    border: "1px solid rgba(8,58,51,0.12)",
   },
   topHint: {
     width: "100%",
