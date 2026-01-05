@@ -1,150 +1,157 @@
 "use client";
+
 import { useState } from "react";
 
-export default function Home() {
-  const [q, setQ] = useState("");
-  const [a, setA] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function Page() {
+  const [mode, setMode] = useState("listening"); // listening | saved | ask | offline
 
-  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  const texts = {
+    listening: {
+      big: "Počúvam.",
+      small: "Môžete povedať napríklad: „Čo mám teraz užiť?“",
+    },
+    saved: {
+      big: "Zapísala som.",
+      small: "Paralen – 1 tableta – dnes 09:12.",
+    },
+    ask: {
+      big: "Podľa rozvrhu teraz:",
+      small: "Liek 1 – 3 tablety – po jedle. Po užití povedzte „hotovo“.",
+    },
+    offline: {
+      big: "Nemám internet.",
+      small: "Skontrolujte Wi-Fi alebo mobilné dáta.",
+    },
+  };
 
-  async function ask() {
-  setLoading(true);
-  setA("");
-  try {
-    if (!API_URL) {
-      setA("Chýba NEXT_PUBLIC_API_URL vo Verceli.");
-      return;
-    }
+  const t = texts[mode];
 
-    const r = await fetch(`${API_URL}/ask`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q, role: "senior", senior_id: "demo" })
-    });
+  return (
+    <main style={s.screen}>
+      <div style={s.topHint}>Váš zdravotný asistent</div>
 
-    const text = await r.text(); // najprv ako text, aby sme videli aj HTML chyby
-    if (!r.ok) {
-      setA(`HTTP ${r.status}: ${text.slice(0, 300)}`);
-      return;
-    }
+      <div style={s.avatarWrap}>
+        <div style={{ ...s.halo, ...(mode === "offline" ? s.haloOff : {}) }} />
+        <img src="/pharmacist.png" alt="AI lekárnička" style={s.avatar} />
+      </div>
 
-    let data;
-    try { data = JSON.parse(text); } catch { data = { answer: text }; }
-    setA(data.answer || "Bez odpovede");
-  } catch (e) {
-    setA(`Chyba spojenia: ${String(e)}`);
-  } finally {
-    setLoading(false);
-  }
-}
+      <div style={s.big}>{t.big}</div>
+      <div style={s.small}>{t.small}</div>
 
- return (
-  <div
-    style={{
-      maxWidth: 820,
-      margin: "24px auto",
-      fontFamily: "system-ui",
-      padding: 16
-    }}
-  >
-    <h1 style={{ fontSize: 32, marginBottom: 10 }}>Asistent pre seniorov</h1>
-    <div style={{ fontSize: 18, opacity: 0.8, marginBottom: 18 }}>
-      Napíš otázku. Odpoviem stručne.
-    </div>
+      {/* Demo ovládanie (neskôr odstránime) */}
+      <div style={s.demoBar}>
+        <button style={btn(mode === "listening")} onClick={() => setMode("listening")}>Počúva</button>
+        <button style={btn(mode === "saved")} onClick={() => setMode("saved")}>Zapísala</button>
+        <button style={btn(mode === "ask")} onClick={() => setMode("ask")}>Rozvrh</button>
+        <button style={btn(mode === "offline")} onClick={() => setMode("offline")}>Offline</button>
+      </div>
 
-    <div style={{ marginTop: 10 }}>
-      <div style={{ marginBottom: 8, fontSize: 20 }}>Otázka</div>
-
-      <textarea
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        rows={3}
-        style={{
-          width: "100%",
-          fontSize: 22,
-          padding: 14,
-          borderRadius: 10,
-          border: "1px solid #ccc"
-        }}
-        placeholder="Napr. Čo znamená tlak 140/90?"
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            if (q.trim() && !loading) ask();
-          }
-        }}
-      />
-
-      <button
-        onClick={ask}
-        disabled={!q.trim() || loading || !API_URL}
-        style={{
-          marginTop: 14,
-          padding: "16px 20px",
-          fontSize: 22,
-          borderRadius: 12,
-          border: "1px solid #ccc",
-          width: "100%"
-        }}
-      >
-        {loading ? "Premýšľam..." : "Spýtať sa"}
-      </button>
-
-      {!API_URL && (
-        <div style={{ marginTop: 12, fontSize: 18, color: "crimson" }}>
-          Chýba nastavenie servera (NEXT_PUBLIC_API_URL).
-        </div>
+      {mode === "offline" && (
+        <a href="/offline" style={s.offlineLink}>Skúsiť znova</a>
       )}
-    </div>
-
-    <div style={{ marginTop: 24 }}>
-      <div style={{ marginBottom: 8, fontSize: 20 }}>Odpoveď</div>
-      <div
-        style={{
-          border: "1px solid #ddd",
-          padding: 16,
-          fontSize: 24,
-          minHeight: 120,
-          borderRadius: 10,
-          lineHeight: 1.35
-        }}
-      >
-        {a || "—"}
-      </div>
-
-      <div style={{ marginTop: 14, display: "flex", gap: 10 }}>
-        <button
-          onClick={() => {
-            setQ("");
-            setA("");
-          }}
-          style={{
-            padding: "14px 16px",
-            fontSize: 18,
-            borderRadius: 10,
-            border: "1px solid #ccc",
-            flex: 1
-          }}
-        >
-          Vymazať
-        </button>
-
-        <button
-          onClick={() => navigator.clipboard?.writeText(a || "")}
-          disabled={!a}
-          style={{
-            padding: "14px 16px",
-            fontSize: 18,
-            borderRadius: 10,
-            border: "1px solid #ccc",
-            flex: 1
-          }}
-        >
-          Kopírovať
-        </button>
-      </div>
-    </div>
-  </div>
-);
+    </main>
+  );
 }
+
+function btn(active) {
+  return {
+    height: 38,
+    padding: "0 12px",
+    borderRadius: 999,
+    border: active ? "none" : "1px solid rgba(16,24,40,0.12)",
+    background: active ? "#8ad4c3" : "#fff",
+    color: active ? "#083a33" : "#101828",
+    fontWeight: 900,
+    fontSize: 12,
+  };
+}
+
+const s = {
+  screen: {
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    padding: "26px 18px 22px",
+    background:
+      "radial-gradient(1200px 700px at 50% 10%, #ffffff 0%, #f3fbf8 70%, #eaf7f3 100%)",
+    color: "#0b1220",
+    fontFamily: "system-ui",
+  },
+  topHint: {
+    width: "100%",
+    maxWidth: 420,
+    fontSize: 14,
+    letterSpacing: 0.2,
+    color: "rgba(11,18,32,0.55)",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  avatarWrap: {
+    position: "relative",
+    marginTop: 28,
+    width: 320,
+    height: 320,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  halo: {
+    position: "absolute",
+    width: 320,
+    height: 320,
+    borderRadius: 999,
+    background:
+      "radial-gradient(circle at 50% 50%, rgba(138,212,195,0.38) 0%, rgba(138,212,195,0.14) 45%, rgba(138,212,195,0) 72%)",
+  },
+  haloOff: { opacity: 0.35 },
+  avatar: {
+    width: 240,
+    height: 240,
+    borderRadius: 999,
+    objectFit: "cover",
+    background: "#fff",
+    border: "1px solid rgba(138,212,195,0.22)",
+    boxShadow:
+      "0 22px 60px rgba(16,24,40,0.10), 0 4px 14px rgba(138,212,195,0.14)",
+  },
+  big: {
+    marginTop: 18,
+    fontSize: 46,
+    fontWeight: 900,
+    letterSpacing: -0.8,
+    textAlign: "center",
+    lineHeight: 1.05,
+  },
+  small: {
+    marginTop: 12,
+    maxWidth: 520,
+    textAlign: "center",
+    fontSize: 16,
+    color: "rgba(11,18,32,0.72)",
+    lineHeight: 1.4,
+  },
+  demoBar: {
+    marginTop: 18,
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    justifyContent: "center",
+    opacity: 0.95,
+  },
+  offlineLink: {
+    marginTop: 14,
+    width: "min(420px, 100%)",
+    height: 54,
+    borderRadius: 16,
+    background: "#8ad4c3",
+    color: "#083a33",
+    fontWeight: 900,
+    fontSize: 18,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textDecoration: "none",
+  },
+};
