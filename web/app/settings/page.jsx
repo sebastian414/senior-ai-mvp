@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 export default function SettingsPage() {
+  const [admin, setAdmin] = useState(false);
   return (
     <main style={s.screen}>
       <header style={s.header}>
@@ -10,10 +13,24 @@ export default function SettingsPage() {
       <div style={s.card}>
         <div style={s.row}>
           <div>
-            <div style={s.rowTitle}>Režim aplikácie</div>
-            <div style={s.rowSub}>Prepínanie medzi seniorom a adminom</div>
+            <div style={s.rowTitle}>Admin režim</div>
+            <div style={s.rowSub}>Len prepína UI, bez prihlasovania.</div>
           </div>
+          <label style={s.toggleWrap}>
+            <input
+              type="checkbox"
+              checked={admin}
+              onChange={(e) => setAdmin(e.target.checked)}
+              style={s.toggle}
+            />
+            <span style={s.knob}>{admin ? "Zapnuté" : "Vypnuté"}</span>
+          </label>
         </div>
+      </div>
+
+      <div style={s.card}>
+        <div style={s.rowTitle}>Aktívny senior_id</div>
+        <div style={s.rowSub}>demo</div>
       </div>
 
       <a href="/family" style={s.primary}>Prepnúť na Admin</a>
@@ -50,6 +67,17 @@ const s = {
   row: { display: "flex", justifyContent: "space-between" },
   rowTitle: { fontWeight: 900, fontSize: 16 },
   rowSub: { marginTop: 4, fontSize: 13, opacity: 0.65 },
+  toggleWrap: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    background: "#f1f5f4",
+    padding: "8px 10px",
+    borderRadius: 12,
+    border: "1px solid rgba(16,24,40,0.08)",
+  },
+  toggle: { width: 20, height: 20 },
+  knob: { fontWeight: 800 },
   primary: {
     width: "min(520px, 100%)",
     margin: "18px auto 0",

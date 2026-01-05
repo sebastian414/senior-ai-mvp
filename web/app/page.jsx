@@ -16,6 +16,16 @@ function cleanTranscript(text) {
   return trimmed.endsWith(".") ? trimmed.slice(0, -1) : trimmed;
 }
 
+function safetyWrap(question, aiAnswer) {
+  const q = (question || "").toLowerCase();
+  const isDose = q.includes("kolko") || q.includes("koľko") || q.includes("dávk") || q.includes("mg") || q.includes("tablet");
+  const isSideEffect = q.includes("vedlaj") || q.includes("vedľaj") || q.includes("ucink") || q.includes("účink");
+  if (isDose || isSideEffect) {
+    return "Zapísala som, čo ste povedali. Pre dávkovanie a vedľajšie účinky vždy postupujte podľa letáku a opýtajte sa lekára alebo lekárnika.";
+  }
+  return `Zapísala som: ${aiAnswer}`;
+}
+
 async function askBackend(question) {
   const res = await fetch(`${API_BASE}/ask`, {
     method: "POST",
@@ -40,6 +50,7 @@ export default function Page() {
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState("");
   const [mouthOpen, setMouthOpen] = useState(false);
+  const [hasApi, setHasApi] = useState(Boolean(API_BASE));
   const speechRef = useRef({ recognizer: null, synthesizer: null });
 
   const statusText = useMemo(() => {
@@ -64,6 +75,12 @@ export default function Page() {
   }, [answer, mode]);
 
   useEffect(() => {
+    if (!API_BASE) {
+      setError("Chýba NEXT_PUBLIC_API_URL v prostredí.");
+      setHasApi(false);
+      setMode("offline");
+      return;
+    }
     warmUpSpeech();
   }, []);
 
@@ -105,6 +122,12 @@ export default function Page() {
       await warmUpSpeech();
     }
 
+    if (!hasApi) {
+      setError("Chýba adresa API. Nastavte NEXT_PUBLIC_API_URL.");
+      setMode("offline");
+      return;
+    }
+
     setIsListening(true);
     setError("");
     setHeardText("");
@@ -134,8 +157,9 @@ export default function Page() {
 
       setMode("ask");
       const aiAnswer = await askBackend(cleaned);
-      setAnswer(aiAnswer);
-      await speakOut(aiAnswer);
+      const safe = safetyWrap(cleaned, aiAnswer);
+      setAnswer(safe);
+      await speakOut(safe);
       setMode("saved");
     } catch (e) {
       console.error(e);
@@ -160,6 +184,15 @@ export default function Page() {
 
       <div style={s.big}>{statusText.big}</div>
       <div style={s.small}>{statusText.small}</div>
+
+      <div style={s.examples}>
+        <div style={s.exampleTitle}>Môžete povedať napríklad:</div>
+        <div style={s.exampleChips}>
+          <span style={s.chip}>„Užil som 2 tabletky lieku X.“</span>
+          <span style={s.chip}>„Čo mám teraz užiť?“</span>
+          <span style={s.chip}>„Včera mi brneli nohy okolo obeda.“</span>
+        </div>
+      </div>
 
       {heardText && (
         <div style={s.heard}>Zachytila som: „{heardText}“</div>
@@ -188,7 +221,7 @@ export default function Page() {
         </button>
         <button
           style={btn(false).ghost}
-          onClick={() => speakOut("Počúvam.")}
+          onClick={() => speakOut(answer || "Počúvam.")}
           disabled={mode === "offline" || isListening}
         >
           Prehrať znova
@@ -349,6 +382,26 @@ const s = {
     alignItems: "center",
     width: "100%",
     gap: 6,
+  },
+  examples: {
+    marginTop: 18,
+    background: "rgba(138,212,195,0.12)",
+    borderRadius: 16,
+    padding: "12px 14px",
+    width: "min(540px, 100%)",
+    border: "1px solid rgba(8,58,51,0.08)",
+  },
+  exampleTitle: { fontSize: 14, opacity: 0.75, marginBottom: 8 },
+  exampleChips: { display: "flex", flexWrap: "wrap", gap: 8 },
+  chip: {
+    background: "#fff",
+    border: "1px solid rgba(8,58,51,0.12)",
+    borderRadius: 999,
+    padding: "8px 12px",
+    fontWeight: 700,
+    fontSize: 14,
+    color: "#083a33",
+    boxShadow: "0 8px 20px rgba(8,58,51,0.08)",
   },
 };
 
