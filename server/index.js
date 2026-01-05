@@ -142,7 +142,7 @@ app.post("/ask", async (req, res) => {
     const raw = data?.choices?.[0]?.message?.content || "";
     const answer = shorten(raw) || "Prepáč, neviem odpovedať.";
 
-    await safeInsertLog({ role, question, answer });
+    await safeInsertLog({ senior_id, role, question, answer });
     return res.json({ answer });
   } catch (e) {
     console.error("Server error:", e);
