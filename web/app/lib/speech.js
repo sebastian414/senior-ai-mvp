@@ -1,6 +1,6 @@
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 
-const VOICE = "sk-SK-FilipNeural";
+const VOICE = "sk-SK-ViktoriaNeural";
 const LANGUAGE = "sk-SK";
 
 export async function fetchSpeechToken(apiBase = "") {
