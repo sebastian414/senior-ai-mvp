@@ -50,13 +50,38 @@ export function recognizeOnce(recognizer) {
 
 export function speakText(synthesizer, text) {
   return new Promise((resolve, reject) => {
-    if (!text) return resolve();
+    const t = (text || "").trim();
+    if (!t) return resolve();
     if (!synthesizer) return reject(new Error("Synthesizer not ready"));
 
     synthesizer.speakTextAsync(
-      text,
-      result => resolve(result),
-      err => reject(new Error(String(err)))
+      t,
+      (result) => {
+        try {
+          // DÔLEŽITÉ: keď to zlyhá, musíš to vidieť
+          if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+            resolve();
+            return;
+          }
+
+          if (result.reason === SpeechSDK.ResultReason.Canceled) {
+            const details = SpeechSDK.CancellationDetails.fromResult(result);
+            const msg =
+              details?.errorDetails ||
+              details?.reason ||
+              "TTS canceled";
+            reject(new Error(String(msg)));
+            return;
+          }
+
+          // fallback
+          reject(new Error(result.errorDetails || "TTS failed"));
+        } finally {
+          // uvoľni výsledok
+          result?.close?.();
+        }
+      },
+      (err) => reject(new Error(String(err)))
     );
   });
 }
