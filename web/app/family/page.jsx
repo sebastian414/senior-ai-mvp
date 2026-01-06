@@ -1,238 +1,144 @@
 "use client";
+
 import { useEffect, useState } from "react";
 
-export default function FamilyPage() {
-  const [logs, setLogs] = useState([]);
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("schedule");
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
-  const problems = logs.filter((x) => {
-    const q = (x.question || "").toLowerCase();
-    return (
-      q.includes("brn") ||
-      q.includes("závr") ||
-      q.includes("zavrat") ||
-      q.includes("boles") ||
-      q.includes("opuch") ||
-      q.includes("nevo") ||
-      q.includes("tepl") ||
-      q.includes("kaš") ||
-      q.includes("kas") ||
-      q.includes("dých") ||
-      q.includes("dych") ||
-      q.includes("tlak") ||
-      q.includes("srdc")
-    );
-  });
+export default function FamilyHome() {
+  const [seniorId, setSeniorId] = useState("demo");
+  const [type, setType] = useState("reminder"); // reminder | note
+  const [text, setText] = useState("");
+  const [status, setStatus] = useState("");
+  const [items, setItems] = useState([]);
 
-  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  async function load() {
+    if (!API_BASE) return;
+    const r = await fetch(`${API_BASE}/logs?senior_id=${encodeURIComponent(seniorId)}&limit=30`);
+    const j = await r.json();
+    setItems(j.logs || []);
+  }
 
   useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        setErr("");
-        if (!API_URL) {
-          setErr("Chýba NEXT_PUBLIC_API_URL v prostredí.");
-          return;
-        }
-        const r = await fetch(`${API_URL}/logs?limit=30&senior_id=demo`);
-        const t = await r.text();
-        if (!r.ok) {
-          setErr(`HTTP ${r.status}: ${t.slice(0, 200)}`);
-          return;
-        }
-        const data = JSON.parse(t);
-        setLogs(data.logs || []);
-      } catch (e) {
-        setErr(String(e));
-      } finally {
-        setLoading(false);
-      }
-    }
     load();
-  }, [API_URL]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const schedule = [
-    { name: "Ralgho", time: "Ráno do 10:00", dose: "1 tableta po jedle" },
-    { name: "Balgin", time: "Obed do 14:00", dose: "1 tableta" },
-    { name: "Anopyrin", time: "Večer do 19:00", dose: "1 tableta" },
-  ];
+  async function submit() {
+    setStatus("");
+    if (!API_BASE) return setStatus("Chýba NEXT_PUBLIC_API_URL");
+    const t = text.trim();
+    if (!t) return;
 
-  const stock = [
-    { name: "Balgin", left: "10 tabliet", status: "5 dní" },
-    { name: "Ralgho", left: "22 tabliet", status: "11 dní" },
-    { name: "Anopyrin", left: "35 tabliet", status: "17 dní" },
-  ];
+    const r = await fetch(`${API_BASE}/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ senior_id: seniorId, type, text: t }),
+    });
 
-  function SectionCard({ title, children }) {
-    return (
-      <div style={styles.card}>
-        <div style={styles.cardTitle}>{title}</div>
-        {children}
-      </div>
-    );
+    if (!r.ok) {
+      const msg = await r.text().catch(() => "");
+      return setStatus(`Chyba: ${r.status} ${msg.slice(0, 120)}`);
+    }
+
+    setText("");
+    setStatus("Uložené ✅");
+    await load();
   }
 
   return (
-    <div style={styles.shell}>
-      <header style={styles.header}>
-        <div>
-          <div style={styles.kicker}>Rodina má prehľad</div>
-          <h1 style={styles.title}>Senior „demo“</h1>
-        </div>
-        <a href="/" style={styles.back}>
-          ← Späť
-        </a>
-      </header>
+    <main style={S.page}>
+      <h1 style={S.h1}>Rodina</h1>
+      <div style={S.sub}>Pridajte pripomienku alebo záznam seniorovi.</div>
 
-      <div style={styles.tabs}>
-        {[
-          { id: "schedule", label: "Rozvrh" },
-          { id: "stock", label: "Zásoby" },
-          { id: "problems", label: "Problémy" },
-          { id: "history", label: "História" },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={tab === t.id ? styles.tabActive : styles.tab}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div style={S.card}>
+        <label style={S.label}>Senior ID</label>
+        <input value={seniorId} onChange={(e) => setSeniorId(e.target.value)} style={S.input} />
+
+        <label style={S.label}>Typ</label>
+        <select value={type} onChange={(e) => setType(e.target.value)} style={S.input}>
+          <option value="reminder">Pripomienka</option>
+          <option value="note">Poznámka</option>
+        </select>
+
+        <label style={S.label}>Text</label>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={4}
+          placeholder={type === "reminder" ? "Napr. Lieky o 8:00" : "Napr. Dnes bol unavený"}
+          style={S.textarea}
+        />
+
+        <button onClick={submit} style={S.btn}>
+          Uložiť
+        </button>
+
+        {status && <div style={S.status}>{status}</div>}
       </div>
 
-      {tab === "schedule" && (
-        <SectionCard title="Rozvrh liekov">
-          {schedule.map((s, i) => (
-            <div key={i} style={styles.row}>
-              <div style={styles.rowTitle}>{s.name}</div>
-              <div style={styles.rowMeta}>{s.time}</div>
-              <div style={styles.rowSub}>{s.dose}</div>
+      <div style={S.list}>
+        <div style={S.listTitle}>Posledné záznamy</div>
+        {items.map((it, idx) => (
+          <div key={idx} style={S.item}>
+            <div style={S.meta}>
+              <b>{it.role}</b> • {it.created_at?.slice(0, 19)?.replace("T", " ")} • {it.type || "-"}
             </div>
-          ))}
-        </SectionCard>
-      )}
-
-      {tab === "stock" && (
-        <SectionCard title="Zásoby">
-          {stock.map((s, i) => (
-            <div key={i} style={styles.row}>
-              <div style={styles.rowTitle}>{s.name}</div>
-              <div style={styles.rowMeta}>{s.left}</div>
-              <div style={styles.rowSub}>Vydrží cca {s.status}</div>
-            </div>
-          ))}
-        </SectionCard>
-      )}
-
-      {tab === "problems" && (
-        <SectionCard title="Problémy (hlasené symptómy)">
-          {!loading && !err && problems.length === 0 && (
-            <div style={styles.empty}>Zatiaľ žiadne hlásené problémy.</div>
-          )}
-          {!loading && !err &&
-            problems.slice(0, 8).map((x, i) => (
-              <div key={i} style={styles.logCard}>
-                <div style={styles.logMeta}>{x.created_at}</div>
-                <div style={styles.logQ}>{x.question}</div>
-              </div>
-            ))}
-        </SectionCard>
-      )}
-
-      {tab === "history" && (
-        <SectionCard title="História (otázky/odpovede)">
-          {loading && <div>Načítavam…</div>}
-          {err && <div style={{ color: "#b42318" }}>Chyba: {err}</div>}
-          {!loading && !err && logs.length === 0 && (
-            <div style={styles.empty}>Zatiaľ žiadne záznamy.</div>
-          )}
-          {!loading &&
-            !err &&
-            logs.map((x, i) => (
-              <div key={i} style={styles.logCard}>
-                <div style={styles.logMeta}>{x.created_at}</div>
-                <div style={styles.logQ}>Otázka: {x.question}</div>
-                <div style={styles.logA}>Odpoveď: {x.answer}</div>
-              </div>
-            ))}
-        </SectionCard>
-      )}
-    </div>
+            <div>{it.question}</div>
+          </div>
+        ))}
+      </div>
+    </main>
   );
 }
-const styles = {
-  shell: {
-    maxWidth: 960,
-    margin: "0 auto",
-    padding: "22px 16px 40px",
-    fontFamily: "system-ui",
+
+const S = {
+  page: { padding: 18, maxWidth: 720, margin: "0 auto", fontFamily: "system-ui" },
+  h1: { fontSize: 28, margin: 0 },
+  sub: { opacity: 0.7, marginTop: 6, marginBottom: 14 },
+  card: {
+    border: "1px solid rgba(0,0,0,0.08)",
+    borderRadius: 14,
+    padding: 14,
+    background: "rgba(255,255,255,0.9)",
   },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 14,
+  label: { display: "block", fontSize: 13, fontWeight: 800, marginTop: 10, opacity: 0.7 },
+  input: {
+    width: "100%",
+    padding: 10,
+    borderRadius: 10,
+    border: "1px solid rgba(0,0,0,0.12)",
+    marginTop: 6,
+    fontSize: 16,
   },
-  kicker: { fontSize: 13, color: "rgba(16,24,40,0.65)" },
-  title: { margin: 0, fontSize: 28, fontWeight: 800 },
-  back: {
-    textDecoration: "none",
-    fontWeight: 800,
-    color: "#0b6b5e",
-    background: "#e8f6f2",
-    padding: "8px 12px",
+  textarea: {
+    width: "100%",
+    padding: 10,
+    borderRadius: 10,
+    border: "1px solid rgba(0,0,0,0.12)",
+    marginTop: 6,
+    fontSize: 16,
+    resize: "vertical",
+  },
+  btn: {
+    width: "100%",
+    marginTop: 12,
+    padding: 12,
     borderRadius: 12,
-  },
-  tabs: {
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-    marginBottom: 14,
-  },
-  tab: {
-    borderRadius: 999,
-    border: "1px solid rgba(16,24,40,0.12)",
-    padding: "10px 14px",
-    background: "#fff",
+    border: "none",
+    fontWeight: 900,
     cursor: "pointer",
-    fontWeight: 750,
-  },
-  tabActive: {
-    borderRadius: 999,
-    border: "1px solid rgba(138,212,195,0.24)",
-    padding: "10px 14px",
     background: "#8ad4c3",
     color: "#083a33",
-    boxShadow: "0 12px 28px rgba(8,58,51,0.12)",
-    cursor: "pointer",
-    fontWeight: 800,
   },
-  card: {
-    background: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    border: "1px solid rgba(16,24,40,0.08)",
-    boxShadow: "0 16px 40px rgba(8,58,51,0.08)",
-    marginTop: 12,
-  },
-  cardTitle: { fontSize: 18, fontWeight: 900, marginBottom: 10 },
-  row: { marginBottom: 10 },
-  rowTitle: { fontWeight: 800, fontSize: 17 },
-  rowMeta: { color: "rgba(16,24,40,0.8)", marginTop: 2 },
-  rowSub: { color: "rgba(16,24,40,0.62)", marginTop: 2 },
-  logCard: {
-    border: "1px solid rgba(16,24,40,0.08)",
-    borderRadius: 12,
+  status: { marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(0,0,0,0.06)" },
+  list: { marginTop: 16 },
+  listTitle: { fontWeight: 900, marginBottom: 8 },
+  item: {
     padding: 12,
+    borderRadius: 12,
+    border: "1px solid rgba(0,0,0,0.08)",
     marginBottom: 10,
-    background: "#f8fbfa",
+    background: "#fff",
   },
-  logMeta: { fontSize: 13, opacity: 0.65, marginBottom: 6 },
-  logQ: { fontWeight: 750, marginBottom: 4 },
-  logA: { color: "rgba(16,24,40,0.82)" },
-  empty: { opacity: 0.7 },
+  meta: { fontSize: 12, opacity: 0.7, marginBottom: 6 },
 };
