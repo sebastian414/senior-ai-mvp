@@ -32,7 +32,9 @@ const allowList = (ALLOWED_ORIGINS || "")
   .map((s) => s.trim())
   .filter(Boolean);
 
-// --- CORS (jednoduché, ale správne)
+// =========================
+// CORS (jednoduché a správne)
+// =========================
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const ok = !origin || allowList.length === 0 || allowList.includes(origin);
@@ -50,12 +52,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- Health
-app.get("/", (req, res) => res.status(200).send("OK"));
-app.get("/health", (req, res) => res.json({ ok: true }));
-
 // =========================
-//  Helpers
+// Helpers
 // =========================
 function isMedicalHighRisk(q) {
   const s = (q || "").toLowerCase();
@@ -88,12 +86,14 @@ function shorten(text) {
 function classifyType(question = "") {
   const s = question.toLowerCase();
 
+  const hasTime = /\bo\s*\d{1,2}(:\d{2})?\b/.test(s);
+
   const isReminder =
     s.includes("pripomeň") ||
     s.includes("pripomen") ||
     s.includes("nezabudni") ||
     s.includes("nezabud") ||
-    s.includes("o ") && /\bo\s*\d{1,2}(:\d{2})?\b/.test(s) ||
+    hasTime ||
     s.includes("užil som") ||
     s.includes("uzil som") ||
     s.includes("zober") ||
@@ -120,8 +120,14 @@ async function safeInsertLog(row) {
 }
 
 // =========================
-//  Logs API (čítanie)
-//  GET /logs?senior_id=demo&limit=20&type=reminder
+// Health
+// =========================
+app.get("/", (req, res) => res.status(200).send("OK"));
+app.get("/health", (req, res) => res.json({ ok: true }));
+
+// =========================
+// Logs API (čítanie)
+// GET /logs?senior_id=demo&limit=20&type=reminder
 // =========================
 app.get("/logs", async (req, res) => {
   try {
@@ -153,7 +159,33 @@ app.get("/logs", async (req, res) => {
 });
 
 // =========================
-//  Ask (AI) + ukladanie do logs s type
+// Family create log (rodina pridá reminder/note)
+// POST /log  { senior_id, type, text }
+// =========================
+app.post("/log", async (req, res) => {
+  try {
+    const senior_id = String(req.body?.senior_id || "demo").trim();
+    const role = "family";
+    const question = String(req.body?.text || "").trim();
+    const type = String(req.body?.type || "note").trim();
+
+    if (!question) return res.status(400).json({ error: "Missing text" });
+    if (!["reminder", "note", "question"].includes(type)) {
+      return res.status(400).json({ error: "Invalid type" });
+    }
+
+    const answer = "";
+    await safeInsertLog({ senior_id, role, question, answer, type });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("Log create error:", e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// =========================
+// Ask (AI) + ukladanie do logs s type
+// POST /ask { question, role, senior_id }
 // =========================
 app.post("/ask", async (req, res) => {
   try {
@@ -165,7 +197,6 @@ app.post("/ask", async (req, res) => {
 
     const type = classifyType(question);
 
-    // zdravotné vysoké riziko -> pevná odpoveď
     if (isMedicalHighRisk(question)) {
       const answer =
         "S týmto ti neviem bezpečne poradiť. Zavolaj lekárnika alebo lekára a povedz im presne, aké lieky užívaš.";
@@ -216,14 +247,14 @@ app.post("/ask", async (req, res) => {
 });
 
 // =========================
-//  Azure Speech token
+// Azure Speech token
 // =========================
 app.get("/speech-token", async (req, res) => {
   try {
     if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
-      return res
-        .status(500)
-        .json({ error: "Missing AZURE_SPEECH_KEY or AZURE_SPEECH_REGION" });
+      return res.status(500).json({
+        error: "Missing AZURE_SPEECH_KEY or AZURE_SPEECH_REGION",
+      });
     }
 
     const r = await fetch(
@@ -248,29 +279,9 @@ app.get("/speech-token", async (req, res) => {
   }
 });
 
+// =========================
+// Start
+// =========================
 const port = PORT || 3000;
-
-app.post("/log", async (req, res) => {
-  try {
-    const senior_id = String(req.body?.senior_id || "demo").trim();
-    const role = "family";
-    const question = String(req.body?.text || "").trim(); // používame stĺpec "question" ako text správy
-    const type = String(req.body?.type || "note").trim(); // "reminder" alebo "note"
-
-    if (!question) return res.status(400).json({ error: "Missing text" });
-    if (!["reminder", "note", "question"].includes(type)) {
-      return res.status(400).json({ error: "Invalid type" });
-    }
-
-    const answer = ""; // rodina nevytvára AI answer
-
-    await safeInsertLog({ senior_id, role, question, answer, type });
-    return res.json({ ok: true });
-  } catch (e) {
-    console.error("Log create error:", e);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-
 app.listen(port, () => console.log(`Server running on :${port}`));
+
