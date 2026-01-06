@@ -1,5 +1,7 @@
 import express from "express";
 import { createClient } from "@supabase/supabase-js";
+import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
+
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -272,6 +274,55 @@ app.get("/speech-token", async (req, res) => {
         .json({ error: `Azure token error ${r.status}: ${t.slice(0, 200)}` });
     }
 
+app.post("/tts", async (req, res) => {
+  try {
+    const text = String(req.body?.text || "").trim();
+    if (!text) return res.status(400).json({ error: "Missing text" });
+
+    const key = process.env.AZURE_SPEECH_KEY;
+    const region = process.env.AZURE_SPEECH_REGION;
+    if (!key || !region) {
+      return res.status(500).json({ error: "Missing AZURE_SPEECH_KEY or AZURE_SPEECH_REGION" });
+    }
+
+    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(key, region);
+    speechConfig.speechSynthesisLanguage = "sk-SK";
+    speechConfig.speechSynthesisVoiceName = "sk-SK-FilipNeural";
+    speechConfig.speechSynthesisOutputFormat =
+      SpeechSDK.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+
+    // null = do pamäte (result.audioData)
+    const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, null);
+
+    synthesizer.speakTextAsync(
+      text,
+      (result) => {
+        try {
+          if (result.reason !== SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+            const details = SpeechSDK.CancellationDetails.fromResult(result);
+            return res.status(500).json({ error: details?.errorDetails || "TTS failed" });
+          }
+
+          const audioData = Buffer.from(result.audioData);
+          res.setHeader("Content-Type", "audio/mpeg");
+          res.setHeader("Cache-Control", "no-store");
+          return res.status(200).send(audioData);
+        } finally {
+          result?.close?.();
+          synthesizer.close();
+        }
+      },
+      (err) => {
+        synthesizer.close();
+        return res.status(500).json({ error: String(err) });
+      }
+    );
+  } catch (e) {
+    return res.status(500).json({ error: String(e) });
+  }
+});
+
+    
     const token = await r.text();
     res.json({ token, region: AZURE_SPEECH_REGION });
   } catch (e) {
