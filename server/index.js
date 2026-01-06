@@ -249,4 +249,28 @@ app.get("/speech-token", async (req, res) => {
 });
 
 const port = PORT || 3000;
+
+app.post("/log", async (req, res) => {
+  try {
+    const senior_id = String(req.body?.senior_id || "demo").trim();
+    const role = "family";
+    const question = String(req.body?.text || "").trim(); // používame stĺpec "question" ako text správy
+    const type = String(req.body?.type || "note").trim(); // "reminder" alebo "note"
+
+    if (!question) return res.status(400).json({ error: "Missing text" });
+    if (!["reminder", "note", "question"].includes(type)) {
+      return res.status(400).json({ error: "Invalid type" });
+    }
+
+    const answer = ""; // rodina nevytvára AI answer
+
+    await safeInsertLog({ senior_id, role, question, answer, type });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("Log create error:", e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 app.listen(port, () => console.log(`Server running on :${port}`));
