@@ -114,7 +114,24 @@ export default function Page() {
   try {
     setError("");
     setIsTalking(true);
-    await speakText(speechRef.current.synthesizer, text);
+
+    const r = await fetch(`${API_BASE}/tts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!r.ok) {
+      const t = await r.text().catch(() => "");
+      throw new Error(`TTS HTTP ${r.status}: ${t.slice(0, 200)}`);
+    }
+
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    await audio.play();
   } catch (e) {
     setError(`TTS chyba: ${String(e?.message || e)}`);
   } finally {
