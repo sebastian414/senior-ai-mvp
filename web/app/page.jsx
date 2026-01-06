@@ -110,14 +110,17 @@ export default function Page() {
   }
 
   async function speakOut(text) {
-    if (!text) return;
-    try {
-      setIsTalking(true);
-      await speakText(speechRef.current.synthesizer, text);
-    } finally {
-      setIsTalking(false);
-    }
+  if (!text) return;
+  try {
+    setError("");
+    setIsTalking(true);
+    await speakText(speechRef.current.synthesizer, text);
+  } catch (e) {
+    setError(`TTS chyba: ${String(e?.message || e)}`);
+  } finally {
+    setIsTalking(false);
   }
+}
 
   async function handleListen() {
     if (mode === "offline") {
