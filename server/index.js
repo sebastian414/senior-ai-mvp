@@ -287,7 +287,7 @@ app.post("/tts", async (req, res) => {
 
     const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(key, region);
     speechConfig.speechSynthesisLanguage = "sk-SK";
-    speechConfig.speechSynthesisVoiceName = "sk-SK-FilipNeural";
+    speechConfig.speechSynthesisVoiceName = "sk-SK-ViktoriaNeural";
     speechConfig.speechSynthesisOutputFormat =
       SpeechSDK.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
 
